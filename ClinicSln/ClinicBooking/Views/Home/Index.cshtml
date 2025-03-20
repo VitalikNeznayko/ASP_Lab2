@@ -1,0 +1,45 @@
+﻿@model ClinicBooking.Models.ViewModels.ViewModel<Appointment> 
+
+<div class="container d-flex flex-column"> 
+    <div style="min-height:250px" class="row flex-grow-1"> 
+        @foreach (var p in Model.Collections ?? Enumerable.Empty<Appointment>()) 
+        { 
+            <div class="col-md-6 col-lg-4 mb-4"> 
+                <div class="card shadow-sm"> 
+                    <div class="card-body"> 
+                        <h5 class="card-title text-primary">@p.Pacient.FullName</h5> 
+                        <p class="card-text"><strong>Лікар:</strong> @p.Doctor.DoctorName</p> 
+                        <p class="card-text"><strong>Дата:</strong> @p.AppointmentDate.ToString("dd.MM.yyyy HH:mm")</p> 
+                        <p class="card-text"><strong>Додаткова інформація:</strong> @p.Notes</p> 
+                    </div> 
+                </div> 
+            </div> 
+        } 
+    </div> 
+
+    <div style="margin-top: 110px" class="pagination-wrapper d-flex justify-content-center"> 
+        <nav aria-label="Page navigation"> 
+            <ul class="pagination justify-content-center"> 
+                <li class="page-item @(Model.PagingInfo.CurrentPage == 1 ? "disabled" : "")"> 
+                    <a class="page-link" href="@Url.Action("Index", new { page = Model.PagingInfo.CurrentPage - 1 })" aria-label="Previous"> 
+                        <span aria-hidden="true">&laquo;</span> 
+                    </a> 
+                </li> 
+
+                @for (int i = 1; i <= Model.PagingInfo.TotalPages; i++) 
+                { 
+                    <li class="page-item @(i == Model.PagingInfo.CurrentPage ? "active" : "")"> 
+                        <a class="page-link" href="@Url.Action("Index", new { page = i })">@i</a> 
+                    </li> 
+                } 
+
+                <li class="page-item @(Model.PagingInfo.CurrentPage == Model.PagingInfo.TotalPages ? "disabled" : "")"> 
+                    <a class="page-link" href="@Url.Action("Index", new { page = Model.PagingInfo.CurrentPage + 1 })" aria-label="Next"> 
+                        <span aria-hidden="true">&raquo;</span> 
+                    </a> 
+                </li> 
+            </ul> 
+        </nav> 
+    </div> 
+</div> 
+
