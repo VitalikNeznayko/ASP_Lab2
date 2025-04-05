@@ -1,11 +1,17 @@
-
 using ClinicBooking.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
-using SportsStore.Models;
-using SportsStore.Models.SportsStore.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDistributedMemoryCache();
+
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); 
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 
 builder.Services.AddControllersWithViews();
 
@@ -18,6 +24,8 @@ builder.Services.AddScoped<IBookRepository, EFBookRepository>();
 var app = builder.Build();
 
 app.UseStaticFiles();
+
+app.UseSession();
 
 app.MapDefaultControllerRoute();
 

@@ -1,0 +1,45 @@
+﻿@model ClinicBooking.Models.ViewModels.AppointmentViewModel
+
+<form method="post" id="appointmentForm">
+    <div class="form-group">
+        <label for="PacientID">Виберіть пацієнта</label>
+        <select id="PacientID" name="PacientID" class="form-control" required onchange="saveData()">
+            <option value="">Оберіть пацієнта</option>
+            @foreach (var pacient in Model.Pacients)
+            {
+                <option value="@pacient.Value" selected="@(Model.PacientID?.ToString() == pacient.Value ? "selected" : null)">@pacient.Text</option>
+            }
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="DoctorID">Виберіть лікаря</label>
+        <select id="DoctorID" name="DoctorID" class="form-control" required onchange="saveData()">
+            <option value="">Оберіть лікаря</option>
+            @foreach (var doctor in Model.Doctors)
+            {
+                <option value="@doctor.Value" selected="@(Model.DoctorID?.ToString() == doctor.Value ? "selected" : null)">@doctor.Text</option>
+            }
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="AppointmentDate">Дата прийому</label>
+        <input type="datetime-local" id="AppointmentDate" name="AppointmentDate" class="form-control" required onchange="saveData()"
+               value="@(Model.AppointmentDate.HasValue ? Model.AppointmentDate.Value.ToString("yyyy-MM-ddTHH:mm") : "")" />
+    </div>
+    <div class="form-group">
+        <label for="Notes">Примітки</label>
+        <textarea id="Notes" name="Notes" class="form-control" onchange="saveData()">@(Model.Notes ?? "")</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Далі</button>
+</form>
+<script>
+       function saveData() {
+        const form = document.getElementById('appointmentForm');
+        const formData = new FormData(form);
+
+        fetch('/Appointment/SaveAppointmentSession', {
+            method: 'POST',
+            body: formData
+        });
+    }
+</script>

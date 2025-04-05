@@ -3,7 +3,6 @@ using ClinicBooking.Models;
 using ClinicBooking.Models.ViewModels;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using SportsStore.Models;
 
 namespace ClinicBooking.Controllers
 {
@@ -16,19 +15,28 @@ namespace ClinicBooking.Controllers
             _context = context;
         }
 
-        public IActionResult Index(int page = 1)
+        public IActionResult Index(string? specialization, int page = 1)
         {
             int pageSize = 3;
-
-            var totalItems = _context.Appointments.Count();
-
-            var appointments = _context.Appointments
+            var appointmentsQuery = _context.Appointments
                 .Include(a => a.Pacient)
-                .Include(a => a.Doctor) 
+                .Include(a => a.Doctor)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(specialization))
+            {
+                appointmentsQuery = appointmentsQuery.Where(a => a.Doctor.Specialization == specialization);
+            }
+
+            int totalItems = appointmentsQuery.Count();
+
+            var appointments = appointmentsQuery
                 .OrderBy(a => a.AppointmentDate)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToList(); 
+                .ToList();
+
+            ViewBag.SelectedSpecialization = specialization;
 
             var viewModel = new ViewModel<Appointment>
             {
@@ -43,5 +51,7 @@ namespace ClinicBooking.Controllers
 
             return View(viewModel);
         }
+
     }
 }
+

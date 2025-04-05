@@ -1,0 +1,22 @@
+﻿@model IEnumerable<string>
+@{
+    var selectedSpecialization = ViewBag.SelectedSpecialization as string; 
+    var timeSlots = Enumerable.Range(8 * 60, (20 - 8) * 60 + 1)
+        .Where(min => min % 15 == 0)
+        .Select(min => TimeSpan.FromMinutes(min).ToString(@"hh\:mm"))
+        .ToList();
+
+}
+
+<div class="list-group">
+    <a class="list-group-item @(selectedSpecialization == null ? "active" : "")"
+       asp-controller="Home" asp-action="Index">Всі спеціалізації</a>
+
+    @foreach (var spec in Model)
+    {
+        <a class="list-group-item @(selectedSpecialization == spec ? "active" : "")"
+           asp-controller="Home" asp-action="Index" asp-route-specialization="@spec">
+            @spec
+        </a>
+    }
+</div>

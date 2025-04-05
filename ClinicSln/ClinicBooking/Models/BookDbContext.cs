@@ -1,7 +1,7 @@
-﻿using ClinicBooking.Models;
+﻿
 using Microsoft.EntityFrameworkCore;
 
-namespace SportsStore.Models
+namespace ClinicBooking.Models
 {
     public class BookDbContext : DbContext
     {

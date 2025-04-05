@@ -1,8 +1,8 @@
-﻿using ClinicBooking.Models;
+﻿
 using Microsoft.EntityFrameworkCore.Migrations;
-using SportsStore.Models.SportsStore.Models;
 
-namespace SportsStore.Models
+
+namespace ClinicBooking.Models
 {
     public class EFBookRepository : IBookRepository
     {

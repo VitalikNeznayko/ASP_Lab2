@@ -28,14 +28,18 @@
             <nav>
                 <ul class="nav">
                     <li class="nav-item"><a class="nav-link text-white" href="/">Головна</a></li>
-
+                    <li class="nav-item"> <a href="@Url.Action("Create", "Appointment")" class="nav-link text-white">Створити новий запис</a></li>
                 </ul>
             </nav>
         </div>
     </header>
 
     <main role="main" class="container my-4">
-        @RenderBody()
+        <div class="container">
+            <div class="row">
+                    @RenderBody()
+            </div>
+        </div>
     </main>
 
     <footer class="bg-dark text-white py-3 mt-5">
@@ -45,5 +49,6 @@
     </footer>
 
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    @RenderSection("Scripts", required: false)
 </body>
 </html>

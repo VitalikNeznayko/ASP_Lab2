@@ -1,0 +1,12 @@
+﻿@model ClinicBooking.Models.Appointment
+
+<div class="col-md-6 col-lg-4 mb-4">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title text-primary">@Model.Pacient.FullName</h5>
+            <p class="card-text"><strong>Лікар:</strong> @Model.Doctor.DoctorName</p>
+            <p class="card-text"><strong>Дата:</strong> @Model.AppointmentDate.ToString("dd.MM.yyyy HH:mm")</p>
+            <p class="card-text"><strong>Додаткова інформація:</strong> @Model.Notes</p>
+        </div>
+    </div>
+</div>
