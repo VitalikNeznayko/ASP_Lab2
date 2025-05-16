@@ -29,7 +29,7 @@ namespace ClinicBooking.WebAPI.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterViewModel model)
+        public async Task<IActionResult> RegisterUser([FromBody] RegisterViewModel model)
         {
             if (ModelState.IsValid)
             {
@@ -58,7 +58,7 @@ namespace ClinicBooking.WebAPI.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginViewModel model)
+        public async Task<IActionResult> LoginUser([FromBody] LoginViewModel model)
         {
             if (!ModelState.IsValid)
             {

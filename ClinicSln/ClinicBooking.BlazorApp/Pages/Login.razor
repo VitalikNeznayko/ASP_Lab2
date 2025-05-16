@@ -1,0 +1,90 @@
+﻿@page "/login"
+@using System.Net.Http.Headers
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+
+<h3>Login</h3>
+
+<EditForm Model="@loginModel" OnValidSubmit="LoginUser">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>Email:</label>
+        <InputText @bind-Value="loginModel.Email" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Password:</label>
+        <InputText @bind-Value="loginModel.Password" type="password" class="form-control" />
+    </div>
+
+    <div class="form-check mb-3">
+        <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" />
+        <label class="form-check-label">Remember Me</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary" disabled="@isLoading">
+        @(isLoading ? "Logging in..." : "Login")
+    </button>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="mt-3 alert @(isSuccess ? "alert-success" : "alert-danger")">
+            @message
+        </div>
+    }
+</EditForm>
+
+@code {
+    private LoginViewModel loginModel = new LoginViewModel();
+    private bool isLoading = false;
+    private string message = "";
+    private bool isSuccess = false;
+
+    private async Task LoginUser()
+    {
+        isLoading = true;
+        message = "";
+        isSuccess = false;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/account/login", loginModel);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var token = await response.Content.ReadFromJsonAsync<TokenResponse>();
+                if (!string.IsNullOrWhiteSpace(token?.Token))
+                {
+                    await JS.InvokeVoidAsync("sessionStorage.setItem", "authToken", token.Token);
+                    Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Token);
+                    isSuccess = true;
+                    message = "Login successful!";
+                    Navigation.NavigateTo("/");
+                }
+                else
+                {
+                    message = "Login failed: Invalid token received.";
+                }
+            }
+            else
+            {
+                message = "Invalid email or password.";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"An error occurred: {ex.Message}";
+        }
+
+        isLoading = false;
+    }
+
+    public class TokenResponse
+    {
+        public string Token { get; set; } = "";
+    }
+
+}

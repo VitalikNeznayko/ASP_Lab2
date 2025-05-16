@@ -1,0 +1,106 @@
+﻿@page "/doctors"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<h3>Doctors</h3>
+
+<button class="btn btn-primary mb-3" @onclick="NavigateToAddDoctor">Додати нового лікаря</button>
+
+<table class="table table-bordered">
+    <thead class="table-light">
+        <tr>
+            <th>#</th>
+            <th>ПІБ</th>
+            <th>Спеціалізація</th>
+            <th>Кабінет</th>
+            <th>Телефон</th>
+            <th>Email</th>
+            <th>Дії</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (doctors == null)
+        {
+            <tr><td colspan="7">Завантаження...</td></tr>
+        }
+        else if (doctors.Count == 0)
+        {
+            <tr><td colspan="7">Лікарів поки немає</td></tr>
+        }
+        else
+        {
+            @foreach (var doctor in doctors)
+            {
+                <tr>
+                    <td>@doctor.DoctorID</td>
+                    <td>@doctor.DoctorName</td>
+                    <td>@doctor.Specialization</td>
+                    <td>@doctor.Cabinet</td>
+                    <td>@doctor.PhoneNumber</td>
+                    <td>@doctor.Email</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning me-2" @onclick="() => NavigateToEditDoctor(doctor.DoctorID)">Змінити</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteDoctor(doctor.DoctorID)">Видалити</button>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Doctor> doctors;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var token = await JS.InvokeAsync<string>("sessionStorage.getItem", "authToken");
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            await LoadDoctors();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadDoctors()
+    {
+        doctors = await Http.GetFromJsonAsync<List<Doctor>>("api/doctor");
+    }
+
+    private void NavigateToAddDoctor()
+    {
+        Navigation.NavigateTo("/add-doctor");
+    }
+
+    private void NavigateToEditDoctor(int id)
+    {
+        Navigation.NavigateTo($"/edit-doctor/{id}");
+    }
+
+    private async Task DeleteDoctor(int id)
+    {
+        var token = await JS.InvokeAsync<string>("sessionStorage.getItem", "authToken");
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await Http.DeleteAsync($"api/doctor/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadDoctors();
+        }
+    }
+}

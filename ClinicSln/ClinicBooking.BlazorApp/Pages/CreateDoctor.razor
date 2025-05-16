@@ -1,0 +1,73 @@
+﻿@page "/add-doctor"
+@using ClinicBooking.Models
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<h3>Додавання нового лікаря</h3>
+
+<EditForm Model="@doctorModel" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <InputText @bind-Value="doctorModel.DoctorName" class="form-control" placeholder="ПІБ лікаря" />
+    </div>
+    <div class="mb-3">
+        <InputText @bind-Value="doctorModel.Specialization" class="form-control" placeholder="Спеціалізація" />
+    </div>
+    <div class="mb-3">
+        <InputText @bind-Value="doctorModel.PhoneNumber" class="form-control" placeholder="Номер телефону" />
+    </div>
+    <div class="mb-3">
+        <InputText @bind-Value="doctorModel.Email" class="form-control" placeholder="Email" />
+    </div>
+    <div class="mb-3">
+        <InputText @bind-Value="doctorModel.Cabinet" class="form-control" placeholder="Кабінет" />
+    </div>
+    <button class="btn btn-success" type="submit">Додати лікаря</button>
+</EditForm>
+
+@code {
+    private Doctor doctorModel = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var token = await JS.InvokeAsync<string>("sessionStorage.getItem", "authToken");
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        var token = await JS.InvokeAsync<string>("sessionStorage.getItem", "authToken");
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await Http.PostAsJsonAsync("api/doctor", doctorModel);
+        if (response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo("/doctors");
+        }
+        else
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Error: {response.StatusCode} - {error}");
+        }
+    }
+}
