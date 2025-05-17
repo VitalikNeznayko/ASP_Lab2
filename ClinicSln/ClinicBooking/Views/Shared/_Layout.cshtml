@@ -74,7 +74,23 @@
             <p>&copy; 2025 My Clinic | Незнайко Віталій.</p>
         </div>
     </footer>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script>
+        window.connection = new signalR.HubConnectionBuilder()
+        .withUrl("/appointmentHub")
+        .build();
 
+        window.connection.start()
+            .then(() => console.log("Підключено до хабу"))
+            .catch(err => console.error("Помилка підключення до хабу:", err));
+
+        window.connection.on("ReceiveAppointmentUpdate", (message) => {
+            console.log("Повідомлення від хабу:", message);
+            alert(message);
+        });
+
+    </script>
+    
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     @RenderSection("Scripts", required: false)
 </body>

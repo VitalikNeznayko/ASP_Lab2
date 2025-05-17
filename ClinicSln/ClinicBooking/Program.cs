@@ -1,7 +1,8 @@
+using ClinicBooking.Hubs;
 using ClinicBooking.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -36,14 +37,18 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 })
 .AddEntityFrameworkStores<AppIdentityDbContext>()
 .AddDefaultTokenProviders();
+builder.Services.AddSignalR();
+
 
 var app = builder.Build();
 
 app.UseStaticFiles();
 app.UseSession();
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHub<AppointmentHub>("/appointmentHub");
 app.MapDefaultControllerRoute();
 
 SeedData.EnsurePopulated(app);

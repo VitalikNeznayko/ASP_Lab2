@@ -1,192 +1,215 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ClinicBooking.Models;
-using Microsoft.AspNetCore.Mvc.Rendering;
+﻿    using ClinicBooking.Hubs;
+    using ClinicBooking.Models;
+    using Microsoft.AspNetCore.Mvc;
+    using Microsoft.AspNetCore.Mvc.Rendering;
+    using Microsoft.AspNetCore.SignalR;
+    using Microsoft.EntityFrameworkCore;
+    using System;
+    using System.Linq;
+    using System.Threading.Tasks;
 
-namespace ClinicBooking.Controllers
-{
-    public class AppointmentsController : Controller
+    namespace ClinicBooking.Controllers
     {
-        private readonly BookDbContext _context;
-
-        public AppointmentsController(BookDbContext context)
+        public class AppointmentsController : Controller
         {
-            _context = context;
-        }
+            private readonly BookDbContext _context;
+            private readonly IHubContext<AppointmentHub> _hubContext;
 
-        public async Task<IActionResult> Index()
-        {
-            var bookDbContext = _context.Appointments.Include(a => a.Doctor).Include(a => a.Pacient);
-            return View(await bookDbContext.ToListAsync());
-        }
-
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null)
+            public AppointmentsController(BookDbContext context, IHubContext<AppointmentHub> hubContext)
             {
-                return NotFound();
+                _context = context;
+                _hubContext = hubContext;
             }
 
-            var appointment = await _context.Appointments
-                .Include(a => a.Doctor)
-                .Include(a => a.Pacient)
-                .FirstOrDefaultAsync(m => m.AppointmentID == id);
-            if (appointment == null)
+            public async Task<IActionResult> Index()
             {
-                return NotFound();
+                var bookDbContext = _context.Appointments.Include(a => a.Doctor).Include(a => a.Pacient);
+                return View(await bookDbContext.ToListAsync());
             }
 
-            return View(appointment);
-        }
-
-        public IActionResult Create()
-        {
-            ViewData["DoctorID"] = new SelectList(
-                _context.Doctors.Select(d => new
+            public async Task<IActionResult> Details(int? id)
+            {
+                if (id == null)
                 {
-                    d.DoctorID,
-                    DisplayText = $"{d.DoctorName} ({d.Specialization})"
-                }),
-                "DoctorID",
-                "DisplayText"
-            );
-            ViewBag.PacientID = new SelectList(_context.Pacients, "PacientID", "FullName");
-            return View();
-        }
+                    return NotFound();
+                }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("PacientID,DoctorID,AppointmentDate,Notes")] Appointment appointment)
-        {
-            ModelState.Remove("AppointmentID");
-
-            if (ModelState.IsValid)
-            {
-                _context.Add(appointment);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            ViewBag.DoctorID = new SelectList(
-                _context.Doctors.Select(d => new
+                var appointment = await _context.Appointments
+                    .Include(a => a.Doctor)
+                    .Include(a => a.Pacient)
+                    .FirstOrDefaultAsync(m => m.AppointmentID == id);
+                if (appointment == null)
                 {
-                    d.DoctorID,
-                    DisplayText = $"{d.DoctorName} ({d.Specialization})"
-                }),
-                "DoctorID",
-                "DisplayText",
-                appointment.DoctorID
-            );
-            ViewBag.PacientID = new SelectList(_context.Pacients, "PacientID", "FullName", appointment.PacientID);
-            return View(appointment);
-        }
+                    return NotFound();
+                }
 
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
+                return View(appointment);
             }
 
-            var appointment = await _context.Appointments.FindAsync(id);
-            if (appointment == null)
+            public IActionResult Create()
             {
-                return NotFound();
+                ViewData["DoctorID"] = new SelectList(
+                    _context.Doctors.Select(d => new
+                    {
+                        d.DoctorID,
+                        DisplayText = $"{d.DoctorName} ({d.Specialization})"
+                    }),
+                    "DoctorID",
+                    "DisplayText"
+                );
+                ViewBag.PacientID = new SelectList(_context.Pacients, "PacientID", "FullName");
+                return View();
             }
-            ViewBag.DoctorID = new SelectList(
-                _context.Doctors.Select(d => new
+
+            [HttpPost]
+            [ValidateAntiForgeryToken]
+            public async Task<IActionResult> Create([Bind("PacientID,DoctorID,AppointmentDate,Notes")] Appointment appointment)
+            {
+                ModelState.Remove("AppointmentID");
+
+                if (ModelState.IsValid)
                 {
-                    d.DoctorID,
-                    DisplayText = $"{d.DoctorName} ({d.Specialization})"
-                }),
-                "DoctorID",
-                "DisplayText",
-                appointment.DoctorID
-            );
-            ViewBag.PacientID = new SelectList(_context.Pacients, "PacientID", "FullName", appointment.PacientID);
-            return View(appointment);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("AppointmentID,PacientID,DoctorID,AppointmentDate,Notes")] Appointment appointment)
-        {
-            if (id != appointment.AppointmentID)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(appointment);
+                    _context.Add(appointment);
                     await _context.SaveChangesAsync();
+                    var newAppointment = await _context.Appointments
+                        .Include(a => a.Doctor)
+                        .Include(a => a.Pacient)
+                        .FirstOrDefaultAsync(a => a.AppointmentID == appointment.AppointmentID);
+
+                    await _hubContext.Clients.All.SendAsync("ReceiveAppointmentCreate", newAppointment);
+
+                    await _hubContext.Clients.All.SendAsync("ReceiveAppointmentUpdate", "Новий запис додано!");
+
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
+                ViewBag.DoctorID = new SelectList(
+                    _context.Doctors.Select(d => new
+                    {
+                        d.DoctorID,
+                        DisplayText = $"{d.DoctorName} ({d.Specialization})"
+                    }),
+                    "DoctorID",
+                    "DisplayText",
+                    appointment.DoctorID
+                );
+                ViewBag.PacientID = new SelectList(_context.Pacients, "PacientID", "FullName", appointment.PacientID);
+                return View(appointment);
+            }
+
+            public async Task<IActionResult> Edit(int? id)
+            {
+                if (id == null)
                 {
-                    if (!AppointmentExists(appointment.AppointmentID))
+                    return NotFound();
+                }
+
+                var appointment = await _context.Appointments.FindAsync(id);
+                if (appointment == null)
+                {
+                    return NotFound();
+                }
+                ViewBag.DoctorID = new SelectList(
+                    _context.Doctors.Select(d => new
                     {
-                        return NotFound();
-                    }
-                    else
+                        d.DoctorID,
+                        DisplayText = $"{d.DoctorName} ({d.Specialization})"
+                    }),
+                    "DoctorID",
+                    "DisplayText",
+                    appointment.DoctorID
+                );
+                ViewBag.PacientID = new SelectList(_context.Pacients, "PacientID", "FullName", appointment.PacientID);
+                return View(appointment);
+            }
+
+            [HttpPost]
+            [ValidateAntiForgeryToken]
+            public async Task<IActionResult> Edit(int id, [Bind("AppointmentID,PacientID,DoctorID,AppointmentDate,Notes")] Appointment appointment)
+            {
+                if (id != appointment.AppointmentID)
+                {
+                    return NotFound();
+                }
+
+                if (ModelState.IsValid)
+                {
+                    try
                     {
-                        throw;
+                        _context.Update(appointment);
+                        await _context.SaveChangesAsync();
+                        var updatedAppointment = await _context.Appointments
+                            .Include(a => a.Doctor)
+                            .Include(a => a.Pacient)
+                            .FirstOrDefaultAsync(a => a.AppointmentID == appointment.AppointmentID);
+
+                        await _hubContext.Clients.All.SendAsync("ReceiveAppointmentEdit", updatedAppointment);
+                        await _hubContext.Clients.All.SendAsync("ReceiveAppointmentUpdate", "Запис оновлено!");
                     }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        if (!AppointmentExists(appointment.AppointmentID))
+                        {
+                            return NotFound();
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                    return RedirectToAction(nameof(Index));
+                }
+                ViewBag.DoctorID = new SelectList(
+                    _context.Doctors.Select(d => new
+                    {
+                        d.DoctorID,
+                        DisplayText = $"{d.DoctorName} ({d.Specialization})"
+                    }),
+                    "DoctorID",
+                    "DisplayText",
+                    appointment.DoctorID
+                );
+                ViewBag.PacientID = new SelectList(_context.Pacients, "PacientID", "FullName", appointment.PacientID);
+                return View(appointment);
+            }
+
+            public async Task<IActionResult> Delete(int? id)
+            {
+                if (id == null)
+                {
+                    return NotFound();
+                }
+
+                var appointment = await _context.Appointments
+                    .Include(a => a.Doctor)
+                    .Include(a => a.Pacient)
+                    .FirstOrDefaultAsync(m => m.AppointmentID == id);
+                if (appointment == null)
+                {
+                    return NotFound();
+                }
+
+                return View(appointment);
+            }
+
+            [HttpPost, ActionName("Delete")]
+            [ValidateAntiForgeryToken]
+            public async Task<IActionResult> DeleteConfirmed(int id)
+            {
+                var appointment = await _context.Appointments.FindAsync(id);
+                if (appointment != null)
+                {
+                    _context.Appointments.Remove(appointment);
+                    await _context.SaveChangesAsync();
+
+                    await _hubContext.Clients.All.SendAsync("ReceiveAppointmentDelete", id);
+                    await _hubContext.Clients.All.SendAsync("ReceiveAppointmentUpdate", "Запис видалено!");
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewBag.DoctorID = new SelectList(
-                _context.Doctors.Select(d => new
-                {
-                    d.DoctorID,
-                    DisplayText = $"{d.DoctorName} ({d.Specialization})"
-                }),
-                "DoctorID",
-                "DisplayText",
-                appointment.DoctorID
-            );
-            ViewBag.PacientID = new SelectList(_context.Pacients, "PacientID", "FullName", appointment.PacientID);
-            return View(appointment);
-        }
 
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
+            private bool AppointmentExists(int id)
             {
-                return NotFound();
+                return _context.Appointments.Any(e => e.AppointmentID == id);
             }
-
-            var appointment = await _context.Appointments
-                .Include(a => a.Doctor)
-                .Include(a => a.Pacient)
-                .FirstOrDefaultAsync(m => m.AppointmentID == id);
-            if (appointment == null)
-            {
-                return NotFound();
-            }
-
-            return View(appointment);
-        }
-
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var appointment = await _context.Appointments.FindAsync(id);
-            if (appointment != null)
-            {
-                _context.Appointments.Remove(appointment);
-                await _context.SaveChangesAsync();
-            }
-            return RedirectToAction(nameof(Index));
-        }
-
-        private bool AppointmentExists(int id)
-        {
-            return _context.Appointments.Any(e => e.AppointmentID == id);
         }
     }
-}

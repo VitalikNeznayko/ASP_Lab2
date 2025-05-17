@@ -28,27 +28,70 @@
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Pacient.FullName)
-            </td>
-            <td>
-                    @Html.DisplayFor(modelItem => item.Doctor.DoctorName)
-                    (@Html.DisplayFor(modelItem => item.Doctor.Specialization))
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.AppointmentDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Notes)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.AppointmentID">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.AppointmentID">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.AppointmentID">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr data-id="@item.AppointmentID">
+                <td>@Html.DisplayFor(modelItem => item.Pacient.FullName)</td>
+                <td>@Html.DisplayFor(modelItem => item.Doctor.DoctorName) (@Html.DisplayFor(modelItem => item.Doctor.Specialization))</td>
+                <td>@Html.DisplayFor(modelItem => item.AppointmentDate)</td>
+                <td>@Html.DisplayFor(modelItem => item.Notes)</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.AppointmentID">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@item.AppointmentID">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@item.AppointmentID">Delete</a>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+<script>
+    window.connection = new signalR.HubConnectionBuilder()
+    .withUrl("/appointmentHub")
+    .build();
+    window.connection.start()
+            .then(() => console.log("Підключено до хабу"))
+            .catch(err => console.error("Помилка підключення до хабу:", err));
+
+    window.connection.on("ReceiveAppointmentCreate", (appointment) => {
+        const row = document.createElement("tr");
+        row.setAttribute("data-id", appointment.appointmentID);
+        row.innerHTML = `
+            <td>${appointment.pacient.fullName}</td>
+            <td>${appointment.doctor.doctorName} (${appointment.doctor.specialization})</td>
+            <td>${new Date(appointment.appointmentDate).toLocaleString()}</td>
+            <td>${appointment.notes ?? ''}</td>
+            <td>
+                <a href="/Appointments/Edit/${appointment.appointmentID}">Edit</a> |
+                <a href="/Appointments/Details/${appointment.appointmentID}">Details</a> |
+                <a href="/Appointments/Delete/${appointment.appointmentID}">Delete</a>
+            </td>
+        `;
+        document.querySelector("tbody").appendChild(row);
+    });
+
+    window.connection.on("ReceiveAppointmentEdit", (appointment) => {
+        const row = document.querySelector(`tr[data-id='${appointment.appointmentID}']`);
+        if (row) {
+            row.innerHTML = `
+                <td>${appointment.pacient.fullName}</td>
+                <td>${appointment.doctor.doctorName} (${appointment.doctor.specialization})</td>
+                <td>${new Date(appointment.appointmentDate).toLocaleString()}</td>
+                <td>${appointment.notes ?? ''}</td>
+                <td>
+                    <a href="/Appointments/Edit/${appointment.appointmentID}">Edit</a> |
+                    <a href="/Appointments/Details/${appointment.appointmentID}">Details</a> |
+                    <a href="/Appointments/Delete/${appointment.appointmentID}">Delete</a>
+                </td>
+            `;
+        }
+    });
+
+    window.connection.on("ReceiveAppointmentDelete", (appointmentId) => {
+        const row = document.querySelector(`tr[data-id='${appointmentId}']`);
+        if (row) {
+            row.remove();
+        }
+    });
+
+</script>
